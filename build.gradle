@@ -3,7 +3,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'com.gradleup.shadow' version '8.3.6'
     id 'org.cadixdev.licenser' version '0.6.1' apply false
-    id 'dev.architectury.loom' version '1.9-SNAPSHOT' apply false
     id 'gg.essential.multi-version.root' apply false
     id 'org.ajoberstar.grgit' version '5.3.0'
     id 'maven-publish'
@@ -60,7 +59,7 @@ publishing {
 
 allprojects {
     // Ignore parent projects (no jars)
-    if (project.name == 'fabric' || project.name == 'bukkit') {
+    if (project.name == 'bukkit') {
         return
     }
     
@@ -117,7 +116,7 @@ allprojects {
 
 subprojects {
     // Ignore parent projects (no jars)
-    if (['fabric', 'bukkit'].contains(project.name)) {
+    if (['bukkit'].contains(project.name)) {
         return
     }
 
@@ -132,13 +131,10 @@ subprojects {
     archivesBaseName = name
 
     // Version-specific configuration
-    if (['fabric', 'bukkit'].contains(project.parent?.name)) {
+    if (['bukkit'].contains(project.parent?.name)) {
         compileJava.options.release.set (project.name == '1.20.1' ? 17 : 21) // 1.20.1 requires Java 17
         version += "+mc.${project.name}"
 
-        if (project.parent?.name?.equals('fabric')) {
-            apply plugin: 'dev.architectury.loom'
-        }
     }
 
     jar {
@@ -151,7 +147,7 @@ subprojects {
     }
 
     // API publishing
-    if (project.name == 'common' || ['fabric', 'bukkit'].contains(project.parent?.name)) {
+    if (project.name == 'common' || ['bukkit'].contains(project.parent?.name)) {
         java {
             withSourcesJar()
             withJavadocJar()
@@ -191,18 +187,6 @@ subprojects {
                 }
             }
 
-            if (project.parent?.name?.equals('fabric')) {
-                publications {
-                    "mavenJavaFabric_${project.name.replace('.', '_')}"(MavenPublication) {
-                        groupId = 'net.william278.husksync'
-                        artifactId = 'husksync-fabric'
-                        version = "$rootProject.version+$project.name"
-                        artifact remapJar
-                        artifact sourcesJar
-                        artifact javadocJar
-                    }
-                }
-            }
         }
     }
 

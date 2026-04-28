@@ -12,8 +12,6 @@ HuskSync supports synchronising a wide range of different data elements, each of
 <details>
 <summary>&nbsp;<b>Are modded items supported?</b></summary>
 
-On Fabric, modded items should usually sync as you would expect with HuskSync. Note that mods which store additional data separate from item NBT on each server may not work as expected. Mod developers &mdash; check out the [[Custom Data API]] for information on how to get your mod's data syncing!
-
 On Spigot, if you're running HuskSync on Arclight or similar, please note we will not be able to provide you with support, but have been reported to save & sync correctly with HuskSync v3.x+.
 
 Please note we cannot guarantee compatibility with everything &mdash; test thoroughly!
