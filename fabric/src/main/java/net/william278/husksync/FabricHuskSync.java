@@ -165,88 +165,93 @@ public class FabricHuskSync implements DedicatedServerModInitializer, HuskSync, 
     }
 
     private void onEnable() {
-        // Audiences
-        //#if MC>=12104
-        this.audiences = MinecraftServerAudiences.of(minecraftServer);
-        //#else
-        //$$ this.audiences = FabricServerAudiences.of(minecraftServer);
-        //#endif
-        this.toilet = FabricToilet.create(getDumpOptions(), minecraftServer);
+        try {
+            // Audiences
+            //#if MC>=12104
+            this.audiences = MinecraftServerAudiences.of(minecraftServer);
+            //#else
+            //$$ this.audiences = FabricServerAudiences.of(minecraftServer);
+            //#endif
+            this.toilet = FabricToilet.create(getDumpOptions(), minecraftServer);
 
-        // Check compatibility
-        checkCompatibility();
-        log(Level.WARNING, """
-                **************
-                WARNING:
-                HuskSync for Fabric is still in an alpha state and is
-                not considered production ready.
-                **************""");
+            // Check compatibility
+            checkCompatibility();
+            log(Level.WARNING, """
+                    **************
+                    WARNING:
+                    HuskSync for Fabric is still in an alpha state and is
+                    not considered production ready.
+                    **************""");
 
-        // Prepare data adapter
-        initialize("data adapter", (plugin) -> {
-            if (getSettings().getSynchronization().isCompressData()) {
-                this.dataAdapter = new SnappyGsonAdapter(this);
-            } else {
-                this.dataAdapter = new GsonAdapter(this);
-            }
-        });
+            // Prepare data adapter
+            initialize("data adapter", (plugin) -> {
+                if (getSettings().getSynchronization().isCompressData()) {
+                    this.dataAdapter = new SnappyGsonAdapter(this);
+                } else {
+                    this.dataAdapter = new GsonAdapter(this);
+                }
+            });
 
-        initialize("data serializers", (plugin) -> {
-            // PERSISTENT_DATA is not registered / available on the Fabric platform
-            registerSerializer(Identifier.INVENTORY, new FabricSerializer.Inventory(this));
-            registerSerializer(Identifier.ENDER_CHEST, new FabricSerializer.EnderChest(this));
-            registerSerializer(Identifier.ADVANCEMENTS, new FabricSerializer.Advancements(this));
-            registerSerializer(Identifier.STATISTICS, new Serializer.Json<>(this, FabricData.Statistics.class));
-            registerSerializer(Identifier.POTION_EFFECTS, new FabricSerializer.PotionEffects(this));
-            registerSerializer(Identifier.GAME_MODE, new Serializer.Json<>(this, FabricData.GameMode.class));
-            registerSerializer(Identifier.FLIGHT_STATUS, new Serializer.Json<>(this, FabricData.FlightStatus.class));
-            registerSerializer(Identifier.ATTRIBUTES, new Serializer.Json<>(this, FabricData.Attributes.class));
-            registerSerializer(Identifier.HEALTH, new Serializer.Json<>(this, FabricData.Health.class));
-            registerSerializer(Identifier.HUNGER, new Serializer.Json<>(this, FabricData.Hunger.class));
-            registerSerializer(Identifier.EXPERIENCE, new Serializer.Json<>(this, FabricData.Experience.class));
-            registerSerializer(Identifier.LOCATION, new Serializer.Json<>(this, FabricData.Location.class));
-            validateDependencies();
-        });
+            initialize("data serializers", (plugin) -> {
+                // PERSISTENT_DATA is not registered / available on the Fabric platform
+                registerSerializer(Identifier.INVENTORY, new FabricSerializer.Inventory(this));
+                registerSerializer(Identifier.ENDER_CHEST, new FabricSerializer.EnderChest(this));
+                registerSerializer(Identifier.ADVANCEMENTS, new FabricSerializer.Advancements(this));
+                registerSerializer(Identifier.STATISTICS, new Serializer.Json<>(this, FabricData.Statistics.class));
+                registerSerializer(Identifier.POTION_EFFECTS, new FabricSerializer.PotionEffects(this));
+                registerSerializer(Identifier.GAME_MODE, new Serializer.Json<>(this, FabricData.GameMode.class));
+                registerSerializer(Identifier.FLIGHT_STATUS, new Serializer.Json<>(this, FabricData.FlightStatus.class));
+                registerSerializer(Identifier.ATTRIBUTES, new Serializer.Json<>(this, FabricData.Attributes.class));
+                registerSerializer(Identifier.HEALTH, new Serializer.Json<>(this, FabricData.Health.class));
+                registerSerializer(Identifier.HUNGER, new Serializer.Json<>(this, FabricData.Hunger.class));
+                registerSerializer(Identifier.EXPERIENCE, new Serializer.Json<>(this, FabricData.Experience.class));
+                registerSerializer(Identifier.LOCATION, new Serializer.Json<>(this, FabricData.Location.class));
+                validateDependencies();
+            });
 
-        // Initialize the database
-        initialize(getSettings().getDatabase().getType().getDisplayName() + " database connection", (plugin) -> {
-            this.database = switch (settings.getDatabase().getType()) {
-                case MYSQL, MARIADB -> new MySqlDatabase(this);
-                case POSTGRES -> new PostgresDatabase(this);
-                case MONGO -> new MongoDbDatabase(this);
-            };
-            this.database.initialize();
-        });
+            // Initialize the database
+            initialize(getSettings().getDatabase().getType().getDisplayName() + " database connection", (plugin) -> {
+                this.database = switch (settings.getDatabase().getType()) {
+                    case MYSQL, MARIADB -> new MySqlDatabase(this);
+                    case POSTGRES -> new PostgresDatabase(this);
+                    case MONGO -> new MongoDbDatabase(this);
+                };
+                this.database.initialize();
+            });
 
-        // Prepare redis connection
-        initialize("Redis server connection", (plugin) -> {
-            this.redisManager = new RedisManager(this);
-            this.redisManager.initialize();
-        });
+            // Prepare redis connection
+            initialize("Redis server connection", (plugin) -> {
+                this.redisManager = new RedisManager(this);
+                this.redisManager.initialize();
+            });
 
-        // Prepare data syncer
-        initialize("data syncer", (plugin) -> {
-            dataSyncer = getSettings().getSynchronization().getMode().create(this);
-            dataSyncer.initialize();
-        });
+            // Prepare data syncer
+            initialize("data syncer", (plugin) -> {
+                dataSyncer = getSettings().getSynchronization().getMode().create(this);
+                dataSyncer.initialize();
+            });
 
-        // Register events
-        initialize("events", (plugin) -> this.eventListener = new FabricEventListener(this));
+            // Register events
+            initialize("events", (plugin) -> this.eventListener = new FabricEventListener(this));
 
-        // Register plugin hooks
-        initialize("hooks", (plugin) -> {
-            if (isDependencyLoaded("Plan") && getSettings().isEnablePlanHook()) {
-                new PlanHook(this).hookIntoPlan();
-            }
-        });
+            // Register plugin hooks
+            initialize("hooks", (plugin) -> {
+                if (isDependencyLoaded("Plan") && getSettings().isEnablePlanHook()) {
+                    new PlanHook(this).hookIntoPlan();
+                }
+            });
 
-        // Register API
-        initialize("api", (plugin) -> FabricHuskSyncAPI.register(this));
+            // Register API
+            initialize("api", (plugin) -> FabricHuskSyncAPI.register(this));
 
-        // Check for updates
-        this.checkForUpdates();
+            // Check for updates
+            this.checkForUpdates();
 
-        ModLoadedCallback.EVENT.invoker().post(FabricHuskSyncAPI.getInstance());
+            ModLoadedCallback.EVENT.invoker().post(FabricHuskSyncAPI.getInstance());
+        } catch (Throwable e) {
+            emergencyShutdown("Failed to initialize HuskSync", e);
+            throw e;
+        }
     }
 
     private void onDisable() {
@@ -352,6 +357,14 @@ public class FabricHuskSync implements DedicatedServerModInitializer, HuskSync, 
             logEvent = logEvent.setCause(throwable[0]);
         }
         logEvent.log(message);
+    }
+
+    @Override
+    public void emergencyShutdown(@NotNull String reason, @NotNull Throwable... throwable) {
+        log(Level.SEVERE, "Emergency shutdown triggered: " + reason, throwable);
+        if (minecraftServer != null) {
+            minecraftServer.execute(() -> minecraftServer.stop(false));
+        }
     }
 
     @NotNull

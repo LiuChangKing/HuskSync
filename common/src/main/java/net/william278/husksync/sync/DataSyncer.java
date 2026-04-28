@@ -174,6 +174,7 @@ public abstract class DataSyncer {
             );
         } catch (Throwable e) {
             plugin.log(Level.WARNING, "Failed to set %s's data from the database".formatted(user.getName()), e);
+            plugin.emergencyShutdown("Failed to read player data from the database", e);
             user.completeSync(false, DataSnapshot.UpdateCause.SYNCHRONIZED, plugin);
         }
     }
