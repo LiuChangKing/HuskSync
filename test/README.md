@@ -8,7 +8,7 @@ Run the script to spin up a Velocity proxy and a pair of Paper servers for testi
 * Only works on Windows (as it deals with bash scripts)
 * Only spins up Paper servers at the moment ()
 
-If you don't want to do this you can also run a single-server test with the various `runServer` tasks in the Bukkit/Fabric modules. 
+If you don't want to do this you can also run a single-server test with the various `runServer` tasks in the Bukkit modules. 
 
 _PRs to improve testing are welcomed with open arms & cups of tea!_
 
