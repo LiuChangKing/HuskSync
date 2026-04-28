@@ -47,6 +47,7 @@ import net.william278.husksync.database.PostgresDatabase;
 import net.william278.husksync.event.BukkitEventDispatcher;
 import net.william278.husksync.hook.PlanHook;
 import net.william278.husksync.listener.BukkitEventListener;
+import net.william278.husksync.listener.BukkitServerNameUpdateListener;
 import net.william278.husksync.listener.LockedHandler;
 import net.william278.husksync.maps.BukkitMapHandler;
 import net.william278.husksync.migrator.LegacyMigrator;
@@ -109,6 +110,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     private BukkitEventListener eventListener;
     private DataAdapter dataAdapter;
     private DataSyncer dataSyncer;
+    private BukkitServerNameUpdateListener serverNameUpdateListener;
     private LegacyConverter legacyConverter;
     private AsynchronousScheduler asyncScheduler;
     private RegionalScheduler regionalScheduler;
@@ -218,6 +220,12 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
             // Register events
             initialize("events", (plugin) -> eventListener.onEnable());
 
+            // Resolve Bukkit server name from proxy and persist it to server.yml
+            initialize("server ID auto-fill", (plugin) -> {
+                serverNameUpdateListener = new BukkitServerNameUpdateListener(this);
+                serverNameUpdateListener.onEnable();
+            });
+
             // Register plugin hooks
             initialize("hooks", (plugin) -> {
                 if (isDependencyLoaded("Plan") && getSettings().isEnablePlanHook()) {
@@ -254,6 +262,9 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
         }
         if (this.eventListener != null) {
             this.eventListener.handlePluginDisable();
+        }
+        if (this.serverNameUpdateListener != null) {
+            this.serverNameUpdateListener.onDisable();
         }
 
         // Unregister API and cancel tasks
