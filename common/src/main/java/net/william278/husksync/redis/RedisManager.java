@@ -140,26 +140,7 @@ public class RedisManager extends JedisPubSub {
             return;
         }
 
-        if (reconnected) {
-            plugin.log(Level.WARNING, "Redis Server connection lost. Attempting reconnect in %ss..."
-                    .formatted(RECONNECTION_TIME / 1000), t);
-        }
-        try {
-            this.unsubscribe();
-        } catch (Throwable ignored) {
-            // empty catch
-        }
-
-        // Make an instant subscribe if occurs any error on initialization
-        if (!reconnected) {
-            reconnected = true;
-        } else {
-            try {
-                Thread.sleep(RECONNECTION_TIME);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        plugin.emergencyShutdown("Lost connection to Redis server", t);
     }
 
     @Override

@@ -142,95 +142,106 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
 
     @Override
     public void onEnable() {
-        this.audiences = BukkitAudiences.create(this);
-        this.toilet = BukkitToilet.create(getDumpOptions());
+        try {
+            this.audiences = BukkitAudiences.create(this);
+            this.toilet = BukkitToilet.create(getDumpOptions());
 
-        // Check compatibility
-        checkCompatibility();
+            // Check compatibility
+            checkCompatibility();
 
-        // Preload NBT-API
-        if (!NBT.preloadApi()) {
-            log(Level.SEVERE, "Failed to load NBT API. HuskSync will not be initialized!");
-            return;
+            // Preload NBT-API
+            if (!NBT.preloadApi()) {
+                log(Level.SEVERE, "Failed to load NBT API. HuskSync will not be initialized!");
+                return;
+            }
+
+            // Register commands
+            initialize("commands", (plugin) -> getUniform().register(PluginCommand.Type.create(this)));
+
+            // Prepare data adapter
+            initialize("data adapter", (plugin) -> {
+                if (settings.getSynchronization().isCompressData()) {
+                    dataAdapter = new SnappyGsonAdapter(this);
+                } else {
+                    dataAdapter = new GsonAdapter(this);
+                }
+            });
+
+            // Prepare serializers
+            initialize("data serializers", (plugin) -> {
+                registerSerializer(Identifier.PERSISTENT_DATA, new BukkitSerializer.PersistentData(this));
+                registerSerializer(Identifier.INVENTORY, new BukkitSerializer.Inventory(this));
+                registerSerializer(Identifier.ENDER_CHEST, new BukkitSerializer.EnderChest(this));
+                registerSerializer(Identifier.ADVANCEMENTS, new BukkitSerializer.Advancements(this));
+                registerSerializer(Identifier.STATISTICS, new Serializer.Json<>(this, BukkitData.Statistics.class));
+                registerSerializer(Identifier.POTION_EFFECTS, new BukkitSerializer.PotionEffects(this));
+                registerSerializer(Identifier.GAME_MODE, new Serializer.Json<>(this, BukkitData.GameMode.class));
+                registerSerializer(Identifier.FLIGHT_STATUS, new Serializer.Json<>(this, BukkitData.FlightStatus.class));
+                registerSerializer(Identifier.ATTRIBUTES, new Serializer.Json<>(this, BukkitData.Attributes.class));
+                registerSerializer(Identifier.HEALTH, new Serializer.Json<>(this, BukkitData.Health.class));
+                registerSerializer(Identifier.HUNGER, new Serializer.Json<>(this, BukkitData.Hunger.class));
+                registerSerializer(Identifier.EXPERIENCE, new Serializer.Json<>(this, BukkitData.Experience.class));
+                registerSerializer(Identifier.LOCATION, new Serializer.Json<>(this, BukkitData.Location.class));
+                validateDependencies();
+            });
+
+            // Setup available migrators
+            initialize("data migrators/converters", (plugin) -> {
+                availableMigrators.add(new LegacyMigrator(this));
+                if (isDependencyLoaded("MySqlPlayerDataBridge")) {
+                    availableMigrators.add(new MpdbMigrator(this));
+                }
+                legacyConverter = new BukkitLegacyConverter(this);
+            });
+
+            // Initialize the database
+            initialize(getSettings().getDatabase().getType().getDisplayName() + " database connection", (plugin) -> {
+                this.database = switch (settings.getDatabase().getType()) {
+                    case MYSQL, MARIADB -> new MySqlDatabase(this);
+                    case POSTGRES -> new PostgresDatabase(this);
+                    case MONGO -> new MongoDbDatabase(this);
+                };
+                this.database.initialize();
+            });
+
+            // Prepare redis connection
+            initialize("Redis server connection", (plugin) -> {
+                this.redisManager = new RedisManager(this);
+                this.redisManager.initialize();
+            });
+
+            // Prepare data syncer
+            initialize("data syncer", (plugin) -> {
+                dataSyncer = getSettings().getSynchronization().getMode().create(this);
+                dataSyncer.initialize();
+            });
+
+            // Register events
+            initialize("events", (plugin) -> eventListener.onEnable());
+
+            // Register plugin hooks
+            initialize("hooks", (plugin) -> {
+                if (isDependencyLoaded("Plan") && getSettings().isEnablePlanHook()) {
+                    new PlanHook(this).hookIntoPlan();
+                }
+            });
+
+            // Register API
+            initialize("api", (plugin) -> BukkitHuskSyncAPI.register(this));
+
+            // Hook into bStats and check for updates
+            initialize("metrics", (plugin) -> this.registerMetrics(METRICS_ID));
+            this.checkForUpdates();
+        } catch (Throwable e) {
+            emergencyShutdown("Failed to initialize HuskSync", e);
+            throw e;
         }
+    }
 
-        // Register commands
-        initialize("commands", (plugin) -> getUniform().register(PluginCommand.Type.create(this)));
-
-        // Prepare data adapter
-        initialize("data adapter", (plugin) -> {
-            if (settings.getSynchronization().isCompressData()) {
-                dataAdapter = new SnappyGsonAdapter(this);
-            } else {
-                dataAdapter = new GsonAdapter(this);
-            }
-        });
-
-        // Prepare serializers
-        initialize("data serializers", (plugin) -> {
-            registerSerializer(Identifier.PERSISTENT_DATA, new BukkitSerializer.PersistentData(this));
-            registerSerializer(Identifier.INVENTORY, new BukkitSerializer.Inventory(this));
-            registerSerializer(Identifier.ENDER_CHEST, new BukkitSerializer.EnderChest(this));
-            registerSerializer(Identifier.ADVANCEMENTS, new BukkitSerializer.Advancements(this));
-            registerSerializer(Identifier.STATISTICS, new Serializer.Json<>(this, BukkitData.Statistics.class));
-            registerSerializer(Identifier.POTION_EFFECTS, new BukkitSerializer.PotionEffects(this));
-            registerSerializer(Identifier.GAME_MODE, new Serializer.Json<>(this, BukkitData.GameMode.class));
-            registerSerializer(Identifier.FLIGHT_STATUS, new Serializer.Json<>(this, BukkitData.FlightStatus.class));
-            registerSerializer(Identifier.ATTRIBUTES, new Serializer.Json<>(this, BukkitData.Attributes.class));
-            registerSerializer(Identifier.HEALTH, new Serializer.Json<>(this, BukkitData.Health.class));
-            registerSerializer(Identifier.HUNGER, new Serializer.Json<>(this, BukkitData.Hunger.class));
-            registerSerializer(Identifier.EXPERIENCE, new Serializer.Json<>(this, BukkitData.Experience.class));
-            registerSerializer(Identifier.LOCATION, new Serializer.Json<>(this, BukkitData.Location.class));
-            validateDependencies();
-        });
-
-        // Setup available migrators
-        initialize("data migrators/converters", (plugin) -> {
-            availableMigrators.add(new LegacyMigrator(this));
-            if (isDependencyLoaded("MySqlPlayerDataBridge")) {
-                availableMigrators.add(new MpdbMigrator(this));
-            }
-            legacyConverter = new BukkitLegacyConverter(this);
-        });
-
-        // Initialize the database
-        initialize(getSettings().getDatabase().getType().getDisplayName() + " database connection", (plugin) -> {
-            this.database = switch (settings.getDatabase().getType()) {
-                case MYSQL, MARIADB -> new MySqlDatabase(this);
-                case POSTGRES -> new PostgresDatabase(this);
-                case MONGO -> new MongoDbDatabase(this);
-            };
-            this.database.initialize();
-        });
-
-        // Prepare redis connection
-        initialize("Redis server connection", (plugin) -> {
-            this.redisManager = new RedisManager(this);
-            this.redisManager.initialize();
-        });
-
-        // Prepare data syncer
-        initialize("data syncer", (plugin) -> {
-            dataSyncer = getSettings().getSynchronization().getMode().create(this);
-            dataSyncer.initialize();
-        });
-
-        // Register events
-        initialize("events", (plugin) -> eventListener.onEnable());
-
-        // Register plugin hooks
-        initialize("hooks", (plugin) -> {
-            if (isDependencyLoaded("Plan") && getSettings().isEnablePlanHook()) {
-                new PlanHook(this).hookIntoPlan();
-            }
-        });
-
-        // Register API
-        initialize("api", (plugin) -> BukkitHuskSyncAPI.register(this));
-
-        // Hook into bStats and check for updates
-        initialize("metrics", (plugin) -> this.registerMetrics(METRICS_ID));
-        this.checkForUpdates();
+    @Override
+    public void emergencyShutdown(@NotNull String reason, @NotNull Throwable... throwable) {
+        log(Level.SEVERE, "Emergency shutdown triggered: " + reason, throwable);
+        getServer().shutdown();
     }
 
     @Override

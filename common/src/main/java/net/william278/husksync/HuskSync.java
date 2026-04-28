@@ -339,6 +339,14 @@ public interface HuskSync extends Task.Supplier, EventDispatcher, ConfigProvider
 
     boolean isDisabling();
 
+    /**
+     * Trigger an emergency server shutdown due to an unrecoverable fault.
+     *
+     * @param reason    the reason for the shutdown
+     * @param throwable the throwable that caused the fault, if present
+     */
+    void emergencyShutdown(@NotNull String reason, @NotNull Throwable... throwable);
+
     @NotNull
     default Gson createGson() {
         return Converters.registerOffsetDateTime(new GsonBuilder()).create();
