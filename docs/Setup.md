@@ -1,11 +1,11 @@
-This will walk you through installing HuskSync on your network of Spigot or Fabric servers. Please check your server's [[Compatibility]] and download the correct version of HuskSync for your server.
+This will walk you through installing HuskSync on your network of Spigot/Paper servers. Please check your server's [[Compatibility]] and download the correct version of HuskSync for your server.
 
 ## Requirements
 HuskSync requires a Database server, a Redis server, and any number of compatible Minecraft servers:
 
-* Any number of [compatible Fabric or Spigot/Paper-based](Compatibility) servers
+* Any number of [compatible Spigot/Paper-based](Compatibility) servers
   * Each server must be running the same exact version of Minecraft
-  * It is not possible to sync data between a mixture of Fabric and Spigot servers
+  * It is not possible to sync data between a mixture of different server platform types
   * HuskSync should not be installed on your Velocity, BungeeCord, or Waterfall proxy
 * A [[Database]] server running MySQL v8.0+, MariaDB v5.0+, PostgreSQL or MongoDB
 * A [[Redis]] server running Redis v5.0+
@@ -14,17 +14,16 @@ HuskSync requires a Database server, a Redis server, and any number of compatibl
 Before you begin, switch off all servers on your network. It is recommended that you also take a backup.
 
 ### 1. Install the jar
-- Place the plugin jar file in the `/plugins/` or `/mods/` directory of each Spigot/Fabric server respectively.
+- Place the plugin jar file in the `/plugins/` directory of each Spigot/Paper server.
 - You do not need to install HuskSync as a proxy plugin.
 - _Spigot users_: You can additionally install [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) or [PacketEvents](https://www.spigotmc.org/resources/packetevents-api.80279/) for better locked user handling.
-- _Fabric users_: Ensure the latest Fabric API mod jar is installed! 
 
 ### 2. Restart servers
 - Start, then stop every server to let HuskSync generate the [[config file]].
 - HuskSync will throw an error in the console and disable itself as it is unable to connect to the database. You haven't set the credentials yet, so this is expected.
 
 ### 3. Enter Database & Redis server credentials
-- Navigate to the new config file on each server (`~/plugins/HuskSync/config.yml` on Spigot, `~/config/husksync/config.yml` on Fabric)
+- Navigate to the new config file on each server (`~/plugins/HuskSync/config.yml`)
 - Under `credentials` in the [`database`](Database) section, enter your database credentials. If you're using a Mongo database, [follow the instructions](database#mongodb-setup) here. You shouldn't need to modify the `connection_pool` properties.
 - Under `credentials` in the [`redis`](Redis) section, enter the credentials of your Redis server. If your Redis server doesn't have a password, leave the password blank as it is.
 - Unless you want to have multiple clusters of servers within your network, each with separate user data, you should not change the value of `cluster_id`.
@@ -45,10 +44,8 @@ Before you begin, switch off all servers on your network. It is recommended that
 (The `port` setting in `credentials` is disregarded when using Atlas.)
 </details>
 
-
-
 ### 4. Set server names in server.yml files
-- Navigate to the server name file on each server (`~/plugins/HuskSync/server.yml` on Spigot, `~/config/husksync/server.yml` on Fabric)
+- Navigate to the server name file on each server (`~/plugins/HuskSync/server.yml`)
 - Set the `name:` of the server in this file to the ID of this server as defined in the config of your proxy (e.g., if this is the "hub" server you access with `/server hub`, put `'hub'` here)
 
 ### 5. Start every server again
