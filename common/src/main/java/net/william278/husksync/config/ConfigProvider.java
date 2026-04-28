@@ -131,6 +131,14 @@ public interface ConfigProvider {
         ));
     }
 
+    default void saveServer(@NotNull Server server) {
+        final YamlConfigurationStore<Server> store = new YamlConfigurationStore<>(
+                Server.class, YAML_CONFIGURATION_PROPERTIES.header(Server.CONFIG_HEADER).build()
+        );
+        store.save(server, getConfigDirectory().resolve("server.yml"));
+        setServerName(server);
+    }
+
     default void validateConfigFiles() {
         // Validate server name is default
         if (getServerName().equals("server")) {
