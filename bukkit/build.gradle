@@ -5,6 +5,13 @@ plugins {
     id 'maven-publish'
 }
 
+def versionPropertiesFile = project.file('gradle.properties')
+if (versionPropertiesFile.exists()) {
+    def versionProperties = new Properties()
+    versionPropertiesFile.withInputStream { versionProperties.load(it) }
+    versionProperties.each { key, value -> ext.set(key.toString(), value.toString()) }
+}
+
 dependencies {
     implementation project(path: ':common')
 

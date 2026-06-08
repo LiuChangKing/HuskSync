@@ -16,7 +16,9 @@ project(":bukkit").with {
     buildFileName = "root.gradle"
 }
 
-file('bukkit').listFiles((FileFilter) ((File file) -> file.isDirectory() && file.name ==~ /(\d+)\.(\d+)(\.(\d+))?/)).each {
+file('bukkit').listFiles((FileFilter) ((File file) -> file.isDirectory()
+        && file.name ==~ /(\d+)\.(\d+)(\.(\d+))?/
+        && new File(file, 'gradle.properties').exists())).each {
     include("bukkit:$it.name")
     project(":bukkit:$it.name").with {
         projectDir = file("bukkit/${it.name}")
