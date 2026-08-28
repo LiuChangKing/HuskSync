@@ -95,7 +95,6 @@ shadowJar {
     relocate 'space.arim.morepaperlib', 'net.william278.husksync.libraries.paperlib'
     relocate 'de.tr7zw.changeme.nbtapi', 'net.william278.husksync.libraries.nbtapi'
 
-    minimize()
 }
 
 tasks {
